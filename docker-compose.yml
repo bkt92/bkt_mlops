@@ -1,0 +1,48 @@
+version: "3"
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow.Dockerfile
+    image: bkt92/mlflow:latest
+    restart: on-failure
+    command:
+      - bash
+      - -c
+      - "mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --serve-artifacts --host 0.0.0.0 --port 5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./docker_run_env/tracker_env:/mlflow
+
+  redis:
+    image: redis:7.0.11-alpine
+    restart: on-failure
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker_run_env/tracker_env/cache:/data
+
+  model_predictor:
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    image: bkt92/model_predictor:latest
+    restart: on-failure
+    depends_on:
+      - mlflow
+      - redis
+    #volumes:
+      #- ./docker_run_env/data/raw_data:/model_predictor/data/raw_data
+      #- ./docker_run_env/data/train_data:/model_predictor/data/train_data
+      #- ./data/model_config:/model_predictor/data/model_config
+      #- ./docker_run_env/data/captured_data:/model_predictor/data/captured_data
+    ports:
+      - 8000:8000
+    environment:
+      #MODEL_CONFIG_PATH: ${MODEL_CONFIG_PATH}
+      MLFLOW_TRACKING_URI: http://host.docker.internal:5000
+      REDIS_ENDPOINT: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: /bin/sh -c "python src/run_api.py"
