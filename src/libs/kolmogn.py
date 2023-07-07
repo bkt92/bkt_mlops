@@ -17,27 +17,27 @@ _STIRLING_COEFFS = np.array([-2.955065359477124183e-2, 6.4102564102564102564e-3,
                     -5.952380952380952381e-4, 7.9365079365079365079e-4,
                     -2.7777777777777777778e-3, 8.3333333333333333333e-2])
 
-@njit()
+@njit(cache=True)
 def polyval(p: list, x):
     y = 0
     for i in range(len(p)):
         y = x * y + p[i]
     return y
 
-@njit()
+@njit(cache=True)
 def _clip_prob(p):
     """clips a probability to range 0<=p<=1."""
     #return np.clip(p, 0.0, 1.0)
     return min(max(p, 0.0), 1.0)
 
-@njit()
+@njit(cache=True)
 def _select_and_clip_prob(cdfprob, sfprob, cdf=True):
     """Selects either the CDF or SF, and then clips to range 0<=p<=1."""
     #p = np.where(cdf, cdfprob, sfprob)
     p = cdfprob if cdf else sfprob
     return _clip_prob(p)
 
-@njit(float64(int32))
+@njit(float64(int32), cache=True)
 def _log_nfactorial_div_n_pow_n(n):
     # Computes n! / n**n
     #    = (n-1)! / n**(n-1)
@@ -47,7 +47,7 @@ def _log_nfactorial_div_n_pow_n(n):
     rn = 1.0/n
     return np.log(n)/2 - n + _LOG_2PI/2 + rn * polyval(_STIRLING_COEFFS, rn/n)
 
-@njit(float64(int32, float64, boolean))
+@njit(float64(int32, float64, boolean), cache=True)
 def _kolmogn_DMTW(n: int, d: float, cdf=True):
     r"""Computes the Kolmogorov CDF:  Pr(D_n <= d) using the MTW approach to
     the Durbin matrix algorithm.
@@ -122,7 +122,7 @@ def _kolmogn_DMTW(n: int, d: float, cdf=True):
 
     return _select_and_clip_prob(p, 1.0-p, cdf)
 
-@njit()
+@njit(cache=True)
 def _pomeranz_compute_j1j2(i, n, ll, ceilf, roundf):
     """Compute the endpoints of the interval for row i."""
     if i == 0:
@@ -140,7 +140,7 @@ def _pomeranz_compute_j1j2(i, n, ll, ceilf, roundf):
 
     return max(j1 + 2, 0), min(j2, n)
 
-@njit(float64(int32, float64, boolean))
+@njit(float64(int32, float64, boolean), cache=True)
 def _kolmogn_Pomeranz(n: int, x: float, cdf=True):
     r"""Computes Pr(D_n <= d) using the Pomeranz recursion algorithm.
 
@@ -224,7 +224,7 @@ def _kolmogn_Pomeranz(n: int, x: float, cdf=True):
     ans = _select_and_clip_prob(ans, 1.0 - ans, cdf)
     return ans
 
-@njit(float64(int32, float64, boolean))
+@njit(float64(int32, float64, boolean), cache=True)
 def _kolmogn_PelzGood(n, x, cdf=True):
     """Computes the Pelz-Good approximation to Prob(Dn <= x) with 0<=x<=1.
 

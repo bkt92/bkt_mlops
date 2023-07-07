@@ -2065,5 +2065,3 @@ parameters:
 end of parameters
 
 pandas_categorical:[]
-
-pandas_categorical:[]
