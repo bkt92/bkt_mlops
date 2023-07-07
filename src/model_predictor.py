@@ -3,6 +3,7 @@ import pathlib
 import time
 
 import mlflow
+import lleaves
 import pandas as pd
 import yaml
 from pandas.util import hash_pandas_object
@@ -12,10 +13,7 @@ from data_processor import RawDataProcessor
 from utils import AppConfig
 import numpy as np
 
-try:
-    from ks_drift import ks_drift as ks_drift_detect
-except:
-    from drift_detector import ks_drift_detect, ks_drift_detect_async
+from drift_detector import ks_drift_detect_async
 
 from aiocache import Cache
 from aiocache.serializers import PickleSerializer
@@ -55,13 +53,20 @@ class ModelPredictor(object):
                            namespace=self.config["phase_id"]+self.config["prob_id"])
         self.cacherequest = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, \
                                   db=self.config["fet_db"], serializer=PickleSerializer())
+        
+        # Compile model to llvm for faster speed
+        model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_lgbm.txt'
+        llvm_model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_lleaves.model'
+        self.model._model_impl.booster_.save_model(filename=model_path)
+        self.llvm_model = lleaves.Model(model_file=model_path)
+        self.llvm_model.compile(cache=llvm_model_path)
 
         return self
 
     async def detect_drift(self, feature_df) -> int:
         # watch drift between coming requests and training data
-        return ks_drift_detect(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())[0]
-        #return await ks_drift_detect_async(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())
+        #return ks_drift_detect(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())[0]
+        return await ks_drift_detect_async(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())
 
     async def predict(self, data):
         start_time = time.time()
@@ -86,7 +91,11 @@ class ModelPredictor(object):
         feature_df = feature_df.astype(np.float64)
 
         # Run prediction if no cache stored.
-        prediction = self.model._model_impl.predict(feature_df[self.feature_cols])
+        #prediction = self.model._model_impl.predict(feature_df[self.feature_cols])
+        prediction_prob = self.llvm_model.predict(feature_df[self.feature_cols])
+        labels = np.argmax(prediction_prob, axis=1)
+        classes = self.model._model_impl.classes_
+        prediction = [classes[i] for i in labels]
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True))
 
         # Save data
@@ -94,7 +103,7 @@ class ModelPredictor(object):
 
         result = {
             "id": data.id,
-            "predictions": prediction.tolist(),
+            "predictions": prediction,
             "drift": is_drifted,
         }
 
@@ -126,7 +135,8 @@ class ModelPredictor(object):
         feature_df = feature_df.astype(np.float64)
 
         # Run prediction if no cache stored.
-        prediction = self.model._model_impl.predict_proba(feature_df[self.feature_cols])[:,1]
+        #prediction = self.model._model_impl.predict_proba(feature_df[self.feature_cols])[:,1]
+        prediction = self.llvm_model.predict(feature_df[self.feature_cols])
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True)
 
         asyncio.create_task(self.cacherequest.set(key, raw_df))

@@ -1,9 +1,10 @@
 import numpy as np
 from scipy.special import smirnov
+from numba import njit, int32, float64, boolean
 
 _E128 = 128
-_EP128 = np.ldexp(np.longdouble(1), _E128)
-_EM128 = np.ldexp(np.longdouble(1), -_E128)
+_EP128 = np.ldexp(np.double(1), _E128)
+_EM128 = np.ldexp(np.double(1), -_E128)
 _SQRT2PI = np.sqrt(2 * np.pi)
 _LOG_2PI = np.log(2 * np.pi)
 _PI_SQUARED = np.pi ** 2
@@ -11,20 +12,32 @@ _PI_FOUR = np.pi ** 4
 _PI_SIX = np.pi ** 6
 _SQRT3 = np.sqrt(3)
 _MIN_LOG = -708
-_STIRLING_COEFFS = [-2.955065359477124183e-2, 6.4102564102564102564e-3,
+_STIRLING_COEFFS = np.array([-2.955065359477124183e-2, 6.4102564102564102564e-3,
                     -1.9175269175269175269e-3, 8.4175084175084175084e-4,
                     -5.952380952380952381e-4, 7.9365079365079365079e-4,
-                    -2.7777777777777777778e-3, 8.3333333333333333333e-2]
+                    -2.7777777777777777778e-3, 8.3333333333333333333e-2])
 
+@njit()
+def polyval(p: list, x):
+    y = 0
+    for i in range(len(p)):
+        y = x * y + p[i]
+    return y
+
+@njit()
 def _clip_prob(p):
     """clips a probability to range 0<=p<=1."""
-    return np.clip(p, 0.0, 1.0)
+    #return np.clip(p, 0.0, 1.0)
+    return min(max(p, 0.0), 1.0)
 
+@njit()
 def _select_and_clip_prob(cdfprob, sfprob, cdf=True):
     """Selects either the CDF or SF, and then clips to range 0<=p<=1."""
-    p = np.where(cdf, cdfprob, sfprob)
+    #p = np.where(cdf, cdfprob, sfprob)
+    p = cdfprob if cdf else sfprob
     return _clip_prob(p)
 
+@njit(float64(int32))
 def _log_nfactorial_div_n_pow_n(n):
     # Computes n! / n**n
     #    = (n-1)! / n**(n-1)
@@ -32,9 +45,10 @@ def _log_nfactorial_div_n_pow_n(n):
     # avoid subtractive cancellation.
     #    = log(n)/2 - n + log(sqrt(2pi)) + sum B_{2j}/(2j)/(2j-1)/n**(2j-1)
     rn = 1.0/n
-    return np.log(n)/2 - n + _LOG_2PI/2 + rn * np.polyval(_STIRLING_COEFFS, rn/n)
+    return np.log(n)/2 - n + _LOG_2PI/2 + rn * polyval(_STIRLING_COEFFS, rn/n)
 
-def _kolmogn_DMTW(n, d, cdf=True):
+@njit(float64(int32, float64, boolean))
+def _kolmogn_DMTW(n: int, d: float, cdf=True):
     r"""Computes the Kolmogorov CDF:  Pr(D_n <= d) using the MTW approach to
     the Durbin matrix algorithm.
 
@@ -55,7 +69,7 @@ def _kolmogn_DMTW(n, d, cdf=True):
     h = k - nd
     m = 2 * k - 1
 
-    H = np.zeros([m, m])
+    H = np.zeros((m, m))
 
     # Initialize: v is first column (and last row) of H
     #  v[j] = (1-h^(j+1)/(j+1)!  (except for v[-1])
@@ -63,7 +77,7 @@ def _kolmogn_DMTW(n, d, cdf=True):
     # q = k-th row of H (actually i!/n^i*H^i)
     intm = np.arange(1, m + 1)
     v = 1.0 - h ** intm
-    w = np.empty(m)
+    w = np.zeros(m)
     fac = 1.0
     for j in intm:
         w[j - 1] = fac
@@ -75,7 +89,7 @@ def _kolmogn_DMTW(n, d, cdf=True):
     for i in range(1, m):
         H[i - 1:, i] = w[:m - i + 1]
     H[:, 0] = v
-    H[-1, :] = np.flip(v, axis=0)
+    H[-1, :] = np.flipud(v)
 
     Hpwr = np.eye(np.shape(H)[0])  # Holds intermediate powers of H
     nn = n
@@ -83,9 +97,9 @@ def _kolmogn_DMTW(n, d, cdf=True):
     Hexpnt = 0  # Scaling of H
     while nn > 0:
         if nn % 2:
-            Hpwr = np.matmul(Hpwr, H)
+            Hpwr = np.dot(Hpwr, H)
             expnt += Hexpnt
-        H = np.matmul(H, H)
+        H = np.dot(H, H)
         Hexpnt *= 2
         # Scale as needed.
         if np.abs(H[k - 1, k - 1]) > _EP128:
@@ -104,10 +118,11 @@ def _kolmogn_DMTW(n, d, cdf=True):
 
     # unscale
     if expnt != 0:
-        p = np.ldexp(p, expnt)
+        p = p*np.exp2(expnt)
 
     return _select_and_clip_prob(p, 1.0-p, cdf)
 
+@njit()
 def _pomeranz_compute_j1j2(i, n, ll, ceilf, roundf):
     """Compute the endpoints of the interval for row i."""
     if i == 0:
@@ -125,12 +140,12 @@ def _pomeranz_compute_j1j2(i, n, ll, ceilf, roundf):
 
     return max(j1 + 2, 0), min(j2, n)
 
-def _kolmogn_Pomeranz(n, x, cdf=True):
+@njit(float64(int32, float64, boolean))
+def _kolmogn_Pomeranz(n: int, x: float, cdf=True):
     r"""Computes Pr(D_n <= d) using the Pomeranz recursion algorithm.
 
     Pomeranz (1974) [2]
     """
-
     # V is n*(2n+2) matrix.
     # Each row is convolution of the previous row and probabilities from a
     #  Poisson distribution.
@@ -165,8 +180,8 @@ def _kolmogn_Pomeranz(n, x, cdf=True):
         twogpower[m] = twogpower[m - 1] * two_g_over_n / m
         onem2gpower[m] = onem2gpower[m - 1] * one_minus_two_g_over_n / m
 
-    V0 = np.zeros([npwrs])
-    V1 = np.zeros([npwrs])
+    V0 = np.zeros((npwrs))
+    V1 = np.zeros((npwrs))
     V1[0] = 1  # first row
     V0s, V1s = 0, 0  # start indices of the two rows
 
@@ -189,25 +204,27 @@ def _kolmogn_Pomeranz(n, x, cdf=True):
             conv_len = j2 - j1 + 1  # Number of entries to use from conv
             V1[:conv_len] = conv[conv_start:conv_start + conv_len]
             # Scale to avoid underflow.
-            if 0 < np.max(V1) < _EM128:
-                V1 *= _EP128
-                expnt -= _E128
+            if 0 < np.max(V1) < np.double(1)*np.exp2(-128):
+                V1 *= np.double(1)*np.exp2(128)
+                expnt -= 128
             V1s = V0s + j1 - k1
 
     # multiply by n!
     ans = V1[n - V1s]
     for m in range(1, n + 1):
-        if np.abs(ans) > _EP128:
-            ans *= _EM128
-            expnt += _E128
+        if np.abs(ans) > np.double(1)*np.exp2(128):
+            ans *= np.double(1)*np.exp2(-128)
+            expnt += 128
         ans *= m
-
+    ansx: float
     # Undo any intermediate scaling
     if expnt != 0:
-        ans = np.ldexp(ans, expnt)
+        ans = ans*np.exp2(expnt)
+        
     ans = _select_and_clip_prob(ans, 1.0 - ans, cdf)
     return ans
 
+@njit(float64(int32, float64, boolean))
 def _kolmogn_PelzGood(n, x, cdf=True):
     """Computes the Pelz-Good approximation to Prob(Dn <= x) with 0<=x<=1.
 
@@ -249,6 +266,7 @@ def _kolmogn_PelzGood(n, x, cdf=True):
     # Use a Horner scheme to evaluate sum c_i q^(i^2)
     # Reduces to a sum over odd integers.
     maxk = int(np.ceil(16 * z / np.pi))
+    
     for k in range(maxk, 0, -1):
         m = 2 * k - 1
         msquared, mfour, msix = m**2, m**4, m**6
@@ -287,7 +305,7 @@ def _kolmogn_PelzGood(n, x, cdf=True):
         K0to3 *= -1
         K0to3[0] += 1
 
-    Ksum = sum(K0to3)
+    Ksum = np.sum(K0to3)
     return Ksum
 
 def kolmogn(n, x, cdf=True):
@@ -339,7 +357,7 @@ def kolmogn(n, x, cdf=True):
             return 0.0
         if nxsquared >= 2.2:
             prob = 2 * smirnov(n, x)
-            return _clip_prob(prob)
+            return np.clip(prob, 0.0, 1.0)
         # Fall through and compute the SF as 1.0-CDF
     if nxsquared >= 18.0:
         cdfprob = 1.0
