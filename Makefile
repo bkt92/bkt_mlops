@@ -2,8 +2,8 @@ build_api:
 	docker build -t  bkt92/model_predictor:latest -f deploy/api.Dockerfile .
 
 push_docker:
-	docker push -t  bkt92/model_predictor:latest
-	docker push -t  bkt92/mlflow:latest
+	docker push bkt92/model_predictor:latest
+	docker push bkt92/mlflow:latest
 
 build_mlflow:
 	 docker build -t bkt92/mlflow:latest  -f deploy/mlflow.Dockerfile .
