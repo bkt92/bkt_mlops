@@ -4,8 +4,8 @@ teardown:
 	make mlflow_down
 
 # mlflow
-docker_build:
-	docker-compose -f deployment/mlflow/docker-compose.yml up -d
+build_api:
+	docker build -t  bkt92/model_predictor:latest -f deploy/api.Dockerfile .
 
 init_api:
 	. .venv/bin/activate

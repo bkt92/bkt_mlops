@@ -9,6 +9,7 @@ uvicorn==0.22.0
 pydantic==2.0.1
 
 uvicorn==0.22.0
+hypercorn
 lightgbm==3.3.5
 lleaves
 falcon==3.1.1
