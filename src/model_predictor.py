@@ -1,8 +1,8 @@
 import logging
-import pathlib
+#import pathlib
 import time
 
-import mlflow
+#import mlflow
 import lleaves
 import pandas as pd
 import yaml
@@ -27,7 +27,7 @@ class ModelPredictor(object):
             self.config = yaml.safe_load(f)
         #logging.info(f"model-config: {self.config}")
 
-        mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
+        #mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
 
         self.prob_config = create_prob_config(
             self.config["phase_id"], self.config["prob_id"]
@@ -51,8 +51,8 @@ class ModelPredictor(object):
         # Init cache
         #self.cache = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, db=0, \
         #                   namespace=self.config["phase_id"]+self.config["prob_id"])
-        self.cache = Cache(Cache.MEMCACHED, endpoint=AppConfig.MEMCACHED_ENDPOINT, port=11211, \
-                           namespace=self.config["phase_id"]+self.config["prob_id"])
+        #self.cache = Cache(Cache.MEMCACHED, endpoint=AppConfig.MEMCACHED_ENDPOINT, port=11211, \
+        #                   namespace=self.config["phase_id"]+self.config["prob_id"])
         self.cacherequest = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, \
                                   db=self.config["fet_db"], serializer=PickleSerializer())
         
@@ -74,19 +74,26 @@ class ModelPredictor(object):
         # watch drift between coming requests and training data
         #return ks_drift_detect(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())[0]
         return await ks_drift_detect_async(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())
+    
+    async def cache_request(self, raw_df):
+        key = str(hash_pandas_object(raw_df).sum())
+        self.cacherequest.set(key, raw_df)
 
     async def predict(self, data):
         start_time = time.time()
 
         raw_df = pd.DataFrame(data.rows, columns=data.columns)
 
-        # load cached data
-        key = str(hash_pandas_object(raw_df).sum())
+        # Save data
+        asyncio.create_task(self.cache_request(raw_df))
 
-        if await self.cache.exists(key):
-            run_time = round((time.time() - start_time) * 1000, 0)
-            logging.info(f"cached {key} {run_time} ms")
-            return await self.cache.get(key)
+        # load cached data
+        #key = str(hash_pandas_object(raw_df).sum())
+
+        #if await self.cache.exists(key):
+        #    run_time = round((time.time() - start_time) * 1000, 0)
+        #    logging.info(f"cached {key} {run_time} ms")
+        #    return await self.cache.get(key)
         
         # preprocess
         feature_df = RawDataProcessor.apply_category_features(
@@ -104,16 +111,13 @@ class ModelPredictor(object):
         prediction = [self.model_classes[i] for i in labels]
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True))
 
-        # Save data
-        asyncio.create_task(self.cacherequest.set(key, raw_df))
-
         result = {
             "id": data.id,
             "predictions": prediction,
             "drift": is_drifted,
         }
 
-        asyncio.create_task(self.cache.set(key, result))
+        #asyncio.create_task(self.cache.set(key, result))
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction response takes {run_time} ms")
@@ -124,12 +128,15 @@ class ModelPredictor(object):
 
         raw_df = pd.DataFrame(data.rows, columns=data.columns)
 
+        # Cache request
+        asyncio.create_task(self.cache_request(raw_df))
+
         # load cached data
-        key = str(hash_pandas_object(raw_df).sum())
-        if await self.cache.exists(key):
-            run_time = round((time.time() - start_time) * 1000, 0)
-            logging.info(f"cached {key} {run_time} ms")
-            return await self.cache.get(key)
+        #key = str(hash_pandas_object(raw_df).sum())
+        #if await self.cache.exists(key):
+        #    run_time = round((time.time() - start_time) * 1000, 0)
+        #    logging.info(f"cached {key} {run_time} ms")
+        #    return await self.cache.get(key)
         
         # preprocess
         feature_df = RawDataProcessor.apply_category_features(
@@ -145,15 +152,13 @@ class ModelPredictor(object):
         prediction = self.llvm_model.predict(feature_df[self.feature_cols])
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True)
 
-        asyncio.create_task(self.cacherequest.set(key, raw_df))
-
         result = {
             "id": data.id,
             "predictions": prediction.tolist(),
             "drift": is_drifted,
         }
 
-        asyncio.create_task(self.cache.set(key, result))
+        #asyncio.create_task(self.cache.set(key, result))
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction response takes {run_time} ms")

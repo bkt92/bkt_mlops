@@ -20,13 +20,13 @@ services:
     volumes:
       - ./.run_env/cache:/data
 
-  memcached:
-    image: memcached:1.6.21
-    restart: on-failure
-    ports:
-      - "11211:11211"
-    command:
-      - '--memory-limit=1024'
+  #memcached:
+  #  image: memcached:1.6.21
+  #  restart: on-failure
+  #  ports:
+  #    - "11211:11211"
+  #  command:
+  #    - '--memory-limit=1024'
 
   model_predictor:
     image: bkt92/model_predictor:latest
@@ -34,10 +34,10 @@ services:
     depends_on:
       - mlflow
       - redis
-      - memcached
+      #- memcached
     ports:
-      - 8000:8000
+      - 5040:8000
     environment:
       MLFLOW_TRACKING_URI:  http://mlflow:5000
       REDIS_ENDPOINT: redis
-      MEMCACHED_ENDPOINT: memcached
+      #MEMCACHED_ENDPOINT: memcached
