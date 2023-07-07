@@ -52,6 +52,6 @@ services:
       #MODEL_CONFIG_PATH: ${MODEL_CONFIG_PATH}
       MLFLOW_TRACKING_URI: http://host.docker.internal:5000
       REDIS_ENDPOINT: host.docker.internal
-      MEMCACHED_ENDPOIN: host.docker.internal
+      MEMCACHED_ENDPOINT: host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"

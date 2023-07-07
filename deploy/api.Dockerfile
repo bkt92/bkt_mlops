@@ -1,6 +1,7 @@
 FROM python:3.11.1-slim
 
 RUN apt-get update
+RUN apt-get install libgomp1
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -13,6 +14,6 @@ RUN pip install -r requirements.txt
 COPY ./src ./src
 COPY ./data ./data
 COPY ./config ./config
-COPY ./deploy/entrypoint.sh .
-RUN chmod +x /model_predictor/entrypoint.sh
-ENTRYPOINT ["/model_predictor/entrypoint.sh"]
+COPY ./deploy/entrypoint.sh /
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -14,11 +14,13 @@ init_api:
 	. .venv/bin/activate
 	export MLFLOW_TRACKING_URI=http://localhost:5000
 	export REDIS_ENDPOINT=localhost
-	export MEMCACHED_ENDPOIN=localhost
+	export MEMCACHED_ENDPOINT=localhost
 	python src/init_startup.py
 
 start_docker_api:
 	docker-compose -f deploy/docker-compose.yml up -d
+stop_docker_api:
+	docker-compose -f deploy/docker-compose.yml down
 
 api_hyper_fal:
 	hypercorn -b 0.0.0.0:8000 -w 4 src.model_falcon:app
