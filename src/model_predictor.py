@@ -49,7 +49,9 @@ class ModelPredictor(object):
         self.X_baseline = pd.read_parquet(self.prob_config.driff_ref_path)[self.prob_config.drift_cols].to_numpy()
 
         # Init cache
-        self.cache = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, db=0, \
+        #self.cache = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, db=0, \
+        #                   namespace=self.config["phase_id"]+self.config["prob_id"])
+        self.cache = Cache(Cache.MEMCACHED, endpoint=AppConfig.MEMCACHED_ENDPOINT, port=11211, \
                            namespace=self.config["phase_id"]+self.config["prob_id"])
         self.cacherequest = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, \
                                   db=self.config["fet_db"], serializer=PickleSerializer())

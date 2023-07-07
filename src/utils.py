@@ -19,4 +19,5 @@ AppPath.PROB_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 class AppConfig:
     MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
     REDIS_ENDPOINT = os.environ.get("REDIS_ENDPOINT")
+    MEMCACHED_ENDPOINT = os.environ.get("MEMCACHED_ENDPOINT")
     MLFLOW_MODEL_PREFIX = "model"

@@ -1,6 +1,7 @@
 call .venv/Scripts/activate.bat
 set MLFLOW_TRACKING_URI=http://localhost:5000
 set REDIS_ENDPOINT=localhost
+set MEMCACHED_ENDPOINT=localhost
 echo Running Startup Script
 python src/init_startup.py
 echo Start API Server
