@@ -1,11 +1,9 @@
-# teardown
-teardown:
-	make predictor_down
-	make mlflow_down
-
-# mlflow
 build_api:
 	docker build -t  bkt92/model_predictor:latest -f deploy/api.Dockerfile .
+
+push_docker:
+	docker push -t  bkt92/model_predictor:latest
+	docker push -t  bkt92/mlflow:latest
 
 build_mlflow:
 	 docker build -t bkt92/mlflow:latest  -f deploy/mlflow.Dockerfile .
@@ -19,6 +17,7 @@ init_api:
 
 start_docker_api:
 	docker-compose -f deploy/docker-compose.yml up -d
+
 stop_docker_api:
 	docker-compose -f deploy/docker-compose.yml down
 
@@ -39,4 +38,10 @@ api_gra_bl:
 
 api_uvi_bl:
 	uvicorn --host 0.0.0.0 --port 8000 --workers 4 src.model_api:app
+
+ping_server:
+	ansible server -m ping -i deploy/inventory.ini -k
+
+deploy_to_server:
+	ansible-playbook deploy/deploy_cloud.yml.yml -i deploy/inventory.ini
 
