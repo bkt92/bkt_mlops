@@ -12,3 +12,7 @@ RUN pip install -r requirements.txt
 
 COPY ./src ./src
 COPY ./data ./data
+COPY ./config ./config
+COPY ./deploy/entrypoint.sh .
+RUN chmod +x /model_predictor/entrypoint.sh
+ENTRYPOINT ["/model_predictor/entrypoint.sh"]

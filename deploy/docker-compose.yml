@@ -1,9 +1,9 @@
 version: "3"
 services:
   mlflow:
-    build:
-      context: .
-      dockerfile: mlflow.Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: mlflow.Dockerfile
     image: bkt92/mlflow:latest
     restart: on-failure
     command:
@@ -13,7 +13,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./docker_run_env/tracker_env:/mlflow
+      - ./.run_env:/mlflow
 
   redis:
     image: redis:7.0.11-alpine
@@ -21,17 +21,26 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./docker_run_env/tracker_env/cache:/data
+      - ./.run_env/cache:/data
+
+  memcached:
+    image: memcached:1.6.21
+    restart: on-failure
+    ports:
+      - "11211:11211"
+    command:
+      - '--memory-limit=1024'
 
   model_predictor:
-    build:
-      context: .
-      dockerfile: api.Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: api.Dockerfile
     image: bkt92/model_predictor:latest
     restart: on-failure
     depends_on:
       - mlflow
       - redis
+      - memcached
     #volumes:
       #- ./docker_run_env/data/raw_data:/model_predictor/data/raw_data
       #- ./docker_run_env/data/train_data:/model_predictor/data/train_data
@@ -43,6 +52,6 @@ services:
       #MODEL_CONFIG_PATH: ${MODEL_CONFIG_PATH}
       MLFLOW_TRACKING_URI: http://host.docker.internal:5000
       REDIS_ENDPOINT: host.docker.internal
+      MEMCACHED_ENDPOIN: host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    entrypoint: /bin/sh -c "python src/run_api.py"
