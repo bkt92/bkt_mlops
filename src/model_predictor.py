@@ -56,10 +56,9 @@ class ModelPredictor(object):
         
         # Compile model to llvm for faster speed
         model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_lgbm.txt'
-        llvm_model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_lleaves.model'
         self.model._model_impl.booster_.save_model(filename=model_path)
         self.llvm_model = lleaves.Model(model_file=model_path)
-        self.llvm_model.compile(cache=llvm_model_path)
+        self.llvm_model.compile()
 
         return self
 
