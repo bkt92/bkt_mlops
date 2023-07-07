@@ -7,12 +7,18 @@ teardown:
 build_api:
 	docker build -t  bkt92/model_predictor:latest -f deploy/api.Dockerfile .
 
+build_mlflow:
+	 docker build -t bkt92/mlflow:latest  -f deploy/mlflow.Dockerfile .
+
 init_api:
 	. .venv/bin/activate
 	export MLFLOW_TRACKING_URI=http://localhost:5000
 	export REDIS_ENDPOINT=localhost
 	export MEMCACHED_ENDPOIN=localhost
 	python src/init_startup.py
+
+start_docker_api:
+	docker-compose -f deploy/docker-compose.yml up -d
 
 api_hyper_fal:
 	hypercorn -b 0.0.0.0:8000 -w 4 src.model_falcon:app
