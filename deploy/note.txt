@@ -1,0 +1,3 @@
+ansible home -m ping -i inventory.ini -k
+
+ansible-playbook api_deploy.yml -i inventory.ini

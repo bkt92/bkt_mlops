@@ -1,0 +1,73 @@
+- name: Deyploy the predictor api to EC2 server
+  hosts: apiserver
+  become: True
+  vars:
+#    MODEL_CONFIG_PATH: /home/ec2-user/model_config/all_model.yaml
+    user_home: /home/ubuntu
+    server_home: /home/ubuntu
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name:
+          - docker-ce
+          - docker-compose-plugin
+          - docker-compose
+        state: latest
+        update_cache: true
+
+    - name: Start docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Enable docker service
+      service:
+         name: docker
+         enabled: yes
+
+    #- name: Copy raw data
+    #  copy:
+    #    src:  "/home/bkt92/MlOps/mlopsmlflow/data/raw_data"
+    #    dest: "{{ server_home }}/data"
+
+    #- name: Copy train data
+    #  copy:
+    #    src:  "/home/bkt92/MlOps/mlopsmlflow/data/train_data"
+    #    dest: "{{ server_home }}/data"
+
+    - name: Copy docker-compose.yaml to server
+      copy:
+        src:  "{{ playbook_dir }}/docker-compose.yml"
+        dest: "{{ server_home }}"
+
+    - name: Run the server
+      command: docker-compose up -d
