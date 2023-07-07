@@ -1,10 +1,11 @@
 - name: Deyploy the predictor api to EC2 server
-  hosts: apiserver
+  hosts: server
   become: True
   vars:
 #    MODEL_CONFIG_PATH: /home/ec2-user/model_config/all_model.yaml
-    user_home: /home/ubuntu
-    server_home: /home/ubuntu
+#    user_home: /home/ubuntu
+#    server_home: /home/ubuntu
+     server_home: /root
   tasks:
     - name: Install aptitude
       apt:

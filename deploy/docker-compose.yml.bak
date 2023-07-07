@@ -1,6 +1,9 @@
 version: "3"
 services:
   mlflow:
+    #build:
+    #  context: .
+    #  dockerfile: mlflow.Dockerfile
     image: bkt92/mlflow:latest
     restart: on-failure
     command:
@@ -29,15 +32,26 @@ services:
       - '--memory-limit=1024'
 
   model_predictor:
+    #build:
+    #  context: .
+    #  dockerfile: api.Dockerfile
     image: bkt92/model_predictor:latest
     restart: on-failure
     depends_on:
       - mlflow
       - redis
       - memcached
+    #volumes:
+      #- ./docker_run_env/data/raw_data:/model_predictor/data/raw_data
+      #- ./docker_run_env/data/train_data:/model_predictor/data/train_data
+      #- ./data/model_config:/model_predictor/data/model_config
+      #- ./docker_run_env/data/captured_data:/model_predictor/data/captured_data
     ports:
       - 8000:8000
     environment:
-      MLFLOW_TRACKING_URI:  http://mlflow:5000
-      REDIS_ENDPOINT: redis
-      MEMCACHED_ENDPOINT: memcached
+      #MODEL_CONFIG_PATH: ${MODEL_CONFIG_PATH}
+      MLFLOW_TRACKING_URI: http://host.docker.internal:5000
+      REDIS_ENDPOINT: host.docker.internal
+      MEMCACHED_ENDPOINT: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -40,8 +40,7 @@ api_uvi_bl:
 	uvicorn --host 0.0.0.0 --port 8000 --workers 4 src.model_api:app
 
 ping_server:
-	ansible server -m ping -i deploy/inventory.ini -k
-
+	ansible server -m ping -i deploy/inventory.ini
+	# -k for asking password
 deploy_to_server:
-	ansible-playbook deploy/deploy_cloud.yml.yml -i deploy/inventory.ini
-
+	ansible-playbook deploy/deploy_cloud.yml -i deploy/inventory.ini
