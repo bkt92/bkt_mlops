@@ -41,3 +41,5 @@ services:
       MLFLOW_TRACKING_URI:  http://mlflow:5000
       REDIS_ENDPOINT: redis
       #MEMCACHED_ENDPOINT: memcached
+      #CACHE_BACKEND: REDIS
+      #SET_CACHE_REQUEST: False

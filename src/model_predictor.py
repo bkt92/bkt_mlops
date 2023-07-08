@@ -45,16 +45,31 @@ class ModelPredictor(object):
         #).as_posix())
         #self.model = mlflow.pyfunc.load_model(model_uri)
 
-        # Init drift detect
+        # Load sample for drift detect
         self.X_baseline = pd.read_parquet(self.prob_config.driff_ref_path)[self.prob_config.drift_cols].to_numpy()
 
         # Init cache
-        #self.cache = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, db=0, \
-        #                   namespace=self.config["phase_id"]+self.config["prob_id"])
-        #self.cache = Cache(Cache.MEMCACHED, endpoint=AppConfig.MEMCACHED_ENDPOINT, port=11211, \
-        #                   namespace=self.config["phase_id"]+self.config["prob_id"])
-        self.cacherequest = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, \
-                                  db=self.config["fet_db"], serializer=PickleSerializer())
+        if AppConfig.CACHE_BACKEND == 'MEMCACHED':
+            logging.info(f"Using Memcached as caching server for response at {AppConfig.MEMCACHED_ENDPOINT}")
+            self.cache = Cache(Cache.MEMCACHED, endpoint=AppConfig.MEMCACHED_ENDPOINT, port=11211, \
+                            namespace=self.config["phase_id"]+self.config["prob_id"])
+            self.is_caching_response = True
+        elif AppConfig.CACHE_BACKEND == 'REDIS':
+            logging.info(f"Using Redis as caching server for response at {AppConfig.REDIS_ENDPOINT}")
+            self.cache = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, db=0, \
+                            namespace=self.config["phase_id"]+self.config["prob_id"])
+            self.is_caching_response = True
+        else:
+            self.is_caching_response = False
+
+        if   AppConfig.CACHE_REQUEST == 'False' or AppConfig.CACHE_REQUEST == '0':
+            self.is_caching_request = False
+        else:  
+            logging.info(f'Caching request at {AppConfig.REDIS_ENDPOINT}, {self.config["phase_id"]}_{self.config["prob_id"]}, \
+                            db: {self.config["fet_db"]}')
+            self.cacherequest = Cache(Cache.REDIS, endpoint=AppConfig.REDIS_ENDPOINT, port=6379, \
+                                    db=self.config["fet_db"], serializer=PickleSerializer())
+            self.is_caching_request = True                         
         
         # Load compiled model for faster speed (run init_startup.py first)
         try:
@@ -75,34 +90,35 @@ class ModelPredictor(object):
         #return ks_drift_detect(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())[0]
         return await ks_drift_detect_async(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())
     
-    async def cache_request(self, raw_df):
-        key = str(hash_pandas_object(raw_df).sum())
-        self.cacherequest.set(key, raw_df)
+    async def caching_req_res(self, raw_df, result, key = None):
+        if (not key and self.is_caching_request) or (not key and self.is_caching_response):
+            key = str(hash_pandas_object(raw_df).sum())
+        if self.is_caching_request:
+            await self.cacherequest.set(key, raw_df)
+        if self.is_caching_response:
+            await self.cache.set(key, result)
+        return None
 
     async def predict(self, data):
         start_time = time.time()
 
         raw_df = pd.DataFrame(data.rows, columns=data.columns)
 
-        # Save data
-        asyncio.create_task(self.cache_request(raw_df))
-
         # load cached data
-        #key = str(hash_pandas_object(raw_df).sum())
-
-        #if await self.cache.exists(key):
-        #    run_time = round((time.time() - start_time) * 1000, 0)
-        #    logging.info(f"cached {key} {run_time} ms")
-        #    return await self.cache.get(key)
+        key = None
+        if self.is_caching_response:
+            key = str(hash_pandas_object(raw_df).sum())
+            if await self.cache.exists(key):
+                run_time = round((time.time() - start_time) * 1000, 0)
+                logging.info(f"cached {key} {run_time} ms")
+                return await self.cache.get(key)
         
         # preprocess
         feature_df = RawDataProcessor.apply_category_features(
             raw_df=raw_df,
             categorical_cols=self.prob_config.categorical_cols,
             category_index=self.category_index,
-        )
-
-        feature_df = feature_df.astype(np.float64)
+        ).astype(np.float64)
 
         # Run prediction if no cache stored.
         #prediction = self.model._model_impl.predict(feature_df[self.feature_cols])
@@ -117,7 +133,8 @@ class ModelPredictor(object):
             "drift": is_drifted,
         }
 
-        #asyncio.create_task(self.cache.set(key, result))
+        # Caching
+        asyncio.create_task(self.caching_req_res(raw_df, result, key))
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction response takes {run_time} ms")
@@ -128,15 +145,14 @@ class ModelPredictor(object):
 
         raw_df = pd.DataFrame(data.rows, columns=data.columns)
 
-        # Cache request
-        asyncio.create_task(self.cache_request(raw_df))
-
         # load cached data
-        #key = str(hash_pandas_object(raw_df).sum())
-        #if await self.cache.exists(key):
-        #    run_time = round((time.time() - start_time) * 1000, 0)
-        #    logging.info(f"cached {key} {run_time} ms")
-        #    return await self.cache.get(key)
+        key = None
+        if self.is_caching_response:
+            key = str(hash_pandas_object(raw_df).sum())
+            if await self.cache.exists(key):
+                run_time = round((time.time() - start_time) * 1000, 0)
+                logging.info(f"cached {key} {run_time} ms")
+                return await self.cache.get(key)
         
         # preprocess
         feature_df = RawDataProcessor.apply_category_features(
@@ -158,11 +174,14 @@ class ModelPredictor(object):
             "drift": is_drifted,
         }
 
-        #asyncio.create_task(self.cache.set(key, result))
+        # Caching
+        asyncio.create_task(self.caching_req_res(raw_df, result, key))
 
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction response takes {run_time} ms")
         return result
 
     async def clear_cache(self):
-        return await self.cache.clear()
+        if self.is_caching_response:
+            await self.cache.clear()
+        return True

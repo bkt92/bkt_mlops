@@ -38,14 +38,14 @@ class Predictor2:
         resp.media = await predictor[2].predict(Data(**data))
         resp.status = falcon.HTTP_200
 
-class Clearcache:
-    async def on_post(self, req, resp):
-        await predictor[1].clear_cache()
-        await predictor[2].clear_cache()
-        resp.media = {"msg": "Cache cleared"}
-        resp.status = falcon.HTTP_200
+#class Clearcache:
+#    async def on_post(self, req, resp):
+#        await predictor[1].clear_cache()
+#        await predictor[2].clear_cache()
+#        resp.media = {"msg": "Cache cleared"}
+#        resp.status = falcon.HTTP_200
 
 app = falcon.asgi.App(middleware=[init_predictor()])
 app.add_route('/phase-2/prob-1/predict', Predictor1())
 app.add_route('/phase-2/prob-2/predict', Predictor2())
-app.add_route('/clearcache', Clearcache())
+#app.add_route('/clearcache', Clearcache())

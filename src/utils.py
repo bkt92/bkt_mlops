@@ -20,4 +20,6 @@ class AppConfig:
     MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
     REDIS_ENDPOINT = os.environ.get("REDIS_ENDPOINT")
     MEMCACHED_ENDPOINT = os.environ.get("MEMCACHED_ENDPOINT")
+    CACHE_BACKEND = os.environ.get("CACHE_BACKEND")
+    CACHE_REQUEST = os.environ.get("SET_CACHE_REQUEST")
     MLFLOW_MODEL_PREFIX = "model"

@@ -13,3 +13,4 @@ hypercorn
 lightgbm==3.3.5
 lleaves
 falcon==3.1.1
+uvloop
