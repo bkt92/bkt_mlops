@@ -43,3 +43,6 @@ services:
       #MEMCACHED_ENDPOINT: memcached
       #CACHE_BACKEND: REDIS
       #SET_CACHE_REQUEST: False
+    command:
+      - "-s uvicorn"
+      - "-w 4"

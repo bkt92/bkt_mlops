@@ -9,22 +9,20 @@ help()
                [ -f | --framework  ]
                [ -w | --worker  ]
                [ -h | --help  ]"
-#    exit 2
+    exit 2
 }
 
 SHORT=s:,k:,f:,w:,h
 LONG=server:,kernel:,framework:,worker:,help
 
-OPTS=$(getopt -a -n entrypoint --options $SHORT --longoptions $LONG -- "$@")
+OPTS=$(getopt -a -n weather --options $SHORT --longoptions $LONG -- "$@")
 
 #VALID_ARGUMENTS=$# # Returns the count of arguments that are in short or long options
 
 #if [ "$VALID_ARGUMENTS" -eq 0 ]; then
 #  help
 #fi
-
 help
-
 eval set -- "$OPTS"
 
 while :
