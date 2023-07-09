@@ -1,0 +1,59 @@
+version: "3"
+services:
+  mlflow:
+    image: bkt92/mlflow:latest
+    restart: on-failure
+    command:
+      - bash
+      - -c
+      - "mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --serve-artifacts --host 0.0.0.0 --port 5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./.run_env:/mlflow
+
+  redis:
+    image: redis:7.0.11-alpine
+    restart: on-failure
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.run_env/cache:/data
+
+  #memcached:
+  #  image: memcached:1.6.21
+  #  restart: on-failure
+  #  ports:
+  #    - "11211:11211"
+  #  command:
+  #    - '--memory-limit=1024'
+
+  mqtt:
+    image: eclipse-mosquitto:2.0.15
+    restart: on-failure
+    ports:
+      - "1883:1883"
+  #  command:
+  #    - '--memory-limit=1024'
+
+  model_predictor:
+    image: bkt92/model_predictor:latest
+    restart: on-failure
+    depends_on:
+      - mlflow
+      - redis
+      - mqtt
+      #- memcached
+    ports:
+      - 5040:8000
+    environment:
+      MLFLOW_TRACKING_URI:  http://mlflow:5000
+      REDIS_ENDPOINT: redis
+      MQTT_ENDPOINT: mqtt
+      #MEMCACHED_ENDPOINT: memcached
+      #CACHE_BACKEND: REDIS
+      #SET_CACHE_REQUEST: False
+    command:
+      - "-s hypercorn"
+      - "-w 4"
+      - "-k uvloop"
