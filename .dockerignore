@@ -1,3 +1,10 @@
 __pycache__
 .vscode
 **/.run_env/*
+# Ignore compiled model
+*classes.npy
+*_lgbm.txt
+*_llvm_compiled.model
+raw_train.parquet
+phase-2_prob-2_lgbm.txt
+phase-2_prob-1_lgbm.txt

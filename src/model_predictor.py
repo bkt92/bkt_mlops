@@ -1,6 +1,7 @@
 import logging
 #import pathlib
 import time
+import datetime
 
 #import mlflow
 import lleaves
@@ -14,6 +15,8 @@ from utils import AppConfig
 import numpy as np
 
 from drift_detector import ks_drift_detect_async
+import paho.mqtt.client as mqtt
+import orjson
 
 from aiocache import Cache
 from aiocache.serializers import PickleSerializer
@@ -82,6 +85,18 @@ class ModelPredictor(object):
             self.model_classes = np.load(model_classes_path, allow_pickle=True)
         except:
             raise Exception("Sorry, model is not saved, run the init_startup.py script first")
+        # Logging to mqtt
+        self.mqtt_topic = f'logging/{self.config["phase_id"]}/{self.config["prob_id"]}'
+        self.mqtt_cient = mqtt.Client()
+        logging.info(AppConfig.MQTT_ENDPOINT)
+        try:
+            self.mqtt_cient.connect(AppConfig.MQTT_ENDPOINT, port=1883)
+            logging.info("Successfully connected to mqtt server")
+            self.mqtt_cient.loop_start()
+            self.is_logging_to_mqtt = True
+        except:
+            logging.info("Fail to connect mqtt server")
+            self.is_logging_to_mqtt = False
 
         return self
 
@@ -90,20 +105,26 @@ class ModelPredictor(object):
         #return ks_drift_detect(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())[0]
         return await ks_drift_detect_async(self.X_baseline, feature_df[self.prob_config.drift_cols].to_numpy())
     
-    async def caching_req_res(self, raw_df, result, key = None):
+    async def caching_req_res(self, raw_df, result, runtime, key = None):
         if (not key and self.is_caching_request) or (not key and self.is_caching_response):
             key = str(hash_pandas_object(raw_df).sum())
         if self.is_caching_request:
             await self.cacherequest.set(key, raw_df)
         if self.is_caching_response:
             await self.cache.set(key, result)
+        if self.is_logging_to_mqtt:
+            current_dt = datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+            result = {
+                "key": key,
+                "request_time": current_dt,
+                "runtime": runtime
+            }
+            (rc, mid) = self.mqtt_cient.publish(self.mqtt_topic, orjson.dumps(result))
         return None
 
     async def predict(self, data):
         start_time = time.time()
-
         raw_df = pd.DataFrame(data.rows, columns=data.columns)
-
         # load cached data
         key = None
         if self.is_caching_response:
@@ -111,40 +132,33 @@ class ModelPredictor(object):
             if await self.cache.exists(key):
                 run_time = round((time.time() - start_time) * 1000, 0)
                 logging.info(f"cached {key} {run_time} ms")
-                return await self.cache.get(key)
-        
+                return await self.cache.get(key)        
         # preprocess
         feature_df = RawDataProcessor.apply_category_features(
             raw_df=raw_df,
             categorical_cols=self.prob_config.categorical_cols,
             category_index=self.category_index,
         ).astype(np.float64)
-
         # Run prediction if no cache stored.
         #prediction = self.model._model_impl.predict(feature_df[self.feature_cols])
         prediction_prob = self.llvm_model.predict(feature_df[self.feature_cols])
         labels = np.argmax(prediction_prob, axis=1)
         prediction = [self.model_classes[i] for i in labels]
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True))
-
         result = {
             "id": data.id,
             "predictions": prediction,
             "drift": is_drifted,
         }
-
-        # Caching
-        asyncio.create_task(self.caching_req_res(raw_df, result, key))
-
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction response takes {run_time} ms")
+        # Caching
+        asyncio.create_task(self.caching_req_res(raw_df, result, run_time, key))
         return result
 
     async def predict_proba(self, data):
         start_time = time.time()
-
         raw_df = pd.DataFrame(data.rows, columns=data.columns)
-
         # load cached data
         key = None
         if self.is_caching_response:
@@ -152,36 +166,36 @@ class ModelPredictor(object):
             if await self.cache.exists(key):
                 run_time = round((time.time() - start_time) * 1000, 0)
                 logging.info(f"cached {key} {run_time} ms")
-                return await self.cache.get(key)
-        
+                return await self.cache.get(key)      
         # preprocess
         feature_df = RawDataProcessor.apply_category_features(
             raw_df=raw_df,
             categorical_cols=self.prob_config.categorical_cols,
             category_index=self.category_index,
-        )
-
-        feature_df = feature_df.astype(np.float64)
-
+        ).astype(np.float64)
         # Run prediction if no cache stored.
         #prediction = self.model._model_impl.predict_proba(feature_df[self.feature_cols])[:,1]
         prediction = self.llvm_model.predict(feature_df[self.feature_cols])
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True)
-
         result = {
             "id": data.id,
             "predictions": prediction.tolist(),
             "drift": is_drifted,
         }
-
-        # Caching
-        asyncio.create_task(self.caching_req_res(raw_df, result, key))
-
         run_time = round((time.time() - start_time) * 1000, 0)
         logging.info(f"prediction response takes {run_time} ms")
+        # Caching
+        asyncio.create_task(self.caching_req_res(raw_df, result, run_time, key))
         return result
 
     async def clear_cache(self):
         if self.is_caching_response:
             await self.cache.clear()
+        return True
+    
+    async def stop(self):
+        if self.is_caching_response:
+            await self.cache.clear()
+        if self.is_logging_to_mqtt:
+            self.mqtt_cient.loop_stop()
         return True

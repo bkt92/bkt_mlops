@@ -19,8 +19,5 @@ AppPath.PROB_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 class AppConfig:
     MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
     REDIS_ENDPOINT = os.environ.get("REDIS_ENDPOINT", "127.0.0.1")
-    MEMCACHED_ENDPOINT = os.environ.get("MEMCACHED_ENDPOINT", "127.0.0.1")
     MQTT_ENDPOINT = os.environ.get("MQTT_ENDPOINT", "127.0.0.1")
-    CACHE_BACKEND = os.environ.get("CACHE_BACKEND")
-    CACHE_REQUEST = os.environ.get("SET_CACHE_REQUEST")
     MLFLOW_MODEL_PREFIX = "model"

@@ -15,3 +15,5 @@ lightgbm==3.3.5
 lleaves
 falcon==3.1.1
 uvloop
+paho-mqtt==1.6.1
+orjson

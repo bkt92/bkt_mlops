@@ -1,0 +1,10 @@
+mlflow==2.3.2
+numpy==1.24.4
+pandas==2.0.3
+scikit-learn==1.2.2
+lightgbm==3.3.5
+jupyterlab
+evidently
+gradio
+orjson
+paho-mqtt==1.6.1

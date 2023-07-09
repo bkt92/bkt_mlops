@@ -38,6 +38,8 @@ async def lifespan():
     await predictor[2].clear_cache()
     yield
     # Clean up the ML models and release the resources
+    await predictor[1].stop()
+    await predictor[2].stop()
     predictor.clear()
 
 @get("/")
