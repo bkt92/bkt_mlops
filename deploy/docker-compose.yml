@@ -28,13 +28,11 @@ services:
   #  command:
   #    - '--memory-limit=1024'
 
-  mqtt:
-    image: eclipse-mosquitto:2.0.25
-    restart: on-failure
-    ports:
-      - "1883:1883"
-  #  command:
-  #    - '--memory-limit=1024'
+  #mqtt:
+  #  image: eclipse-mosquitto:2.0.25
+  #  restart: on-failure
+  #  ports:
+  #    - "1883:1883"
 
   model_predictor:
     image: bkt92/model_predictor:latest
