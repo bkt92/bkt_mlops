@@ -93,11 +93,11 @@ if __name__=="__main__":
     client1 = mqtt.Client()
     client1.on_connect = on_connect1
     client1.on_message = on_message1
-    client1.connect(AppConfig.MQTT_ENDPOINT, 1883, 60)
+    client1.connect(AppConfig.MQTT_ENDPOINT, AppConfig.MQTT_PORT, 60)
     client1.loop_start()
     client2 = mqtt.Client()
     client2.on_connect = on_connect2
     client2.on_message = on_message2
-    client2.connect(AppConfig.MQTT_ENDPOINT, 1883, 60)
+    client2.connect(AppConfig.MQTT_ENDPOINT, AppConfig.MQTT_PORT, 60)
     client2.loop_start()
     dashboard.queue().launch()

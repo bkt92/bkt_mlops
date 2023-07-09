@@ -60,6 +60,9 @@ do
   esac
 done
 
+echo "Start mqtt service"
+./mosquitto.sh &
+
 echo "Start load and compile models"
 python src/init_startup.py
 

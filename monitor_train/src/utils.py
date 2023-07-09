@@ -20,4 +20,5 @@ class AppConfig:
     MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
     REDIS_ENDPOINT = os.environ.get("REDIS_ENDPOINT", "127.0.0.1")
     MQTT_ENDPOINT = os.environ.get("MQTT_ENDPOINT", "127.0.0.1")
+    MQTT_PORT = os.environ.get("MQTT_PORT", "1883")
     MLFLOW_MODEL_PREFIX = "model"

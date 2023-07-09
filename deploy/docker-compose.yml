@@ -28,11 +28,11 @@ services:
   #  command:
   #    - '--memory-limit=1024'
 
-  mqtt:
-    image: eclipse-mosquitto:2.0.25
-    restart: on-failure
-    ports:
-      - "1883:1883"
+  #mqtt:
+  #  image: eclipse-mosquitto:2.0.25
+  #  restart: on-failure
+  #  ports:
+  #    - "1883:1883"
   #  command:
   #    - '--memory-limit=1024'
 
@@ -42,14 +42,15 @@ services:
     depends_on:
       - mlflow
       - redis
-      - mqtt
+      #- mqtt
       #- memcached
     ports:
       - 5040:8000
+      - 1884:1883
     environment:
       MLFLOW_TRACKING_URI:  http://mlflow:5000
       REDIS_ENDPOINT: redis
-      MQTT_ENDPOINT: mqtt
+      MQTT_ENDPOINT: localhost
       #MEMCACHED_ENDPOINT: memcached
       #CACHE_BACKEND: REDIS
       #SET_CACHE_REQUEST: False
