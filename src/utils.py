@@ -23,4 +23,5 @@ class AppConfig:
     MQTT_ENDPOINT = os.environ.get("MQTT_ENDPOINT", "127.0.0.1")
     CACHE_BACKEND = os.environ.get("CACHE_BACKEND")
     CACHE_REQUEST = os.environ.get("SET_CACHE_REQUEST")
+    REMOTE_LOGGING = os.environ.get("REMOTE_LOGGING")
     MLFLOW_MODEL_PREFIX = "model"

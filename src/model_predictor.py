@@ -86,17 +86,20 @@ class ModelPredictor(object):
         except:
             raise Exception("Sorry, model is not saved, run the init_startup.py script first")
         # Logging to mqtt
-        self.mqtt_topic = f'logging/{self.config["phase_id"]}/{self.config["prob_id"]}'
-        self.mqtt_cient = mqtt.Client()
-        logging.info(AppConfig.MQTT_ENDPOINT)
-        try:
-            self.mqtt_cient.connect(AppConfig.MQTT_ENDPOINT, port=1883)
-            logging.info("Successfully connected to mqtt server")
-            self.mqtt_cient.loop_start()
-            self.is_logging_to_mqtt = True
-        except:
-            logging.info("Fail to connect mqtt server")
+        if AppConfig.REMOTE_LOGGING == 'False' or AppConfig.REMOTE_LOGGING == '0':
             self.is_logging_to_mqtt = False
+        else:
+            self.mqtt_topic = f'logging/{self.config["phase_id"]}/{self.config["prob_id"]}'
+            self.mqtt_cient = mqtt.Client()
+            logging.info(AppConfig.MQTT_ENDPOINT)
+            try:
+                self.mqtt_cient.connect(AppConfig.MQTT_ENDPOINT, port=1883)
+                logging.info("Successfully connected to mqtt server")
+                self.mqtt_cient.loop_start()
+                self.is_logging_to_mqtt = True
+            except:
+                logging.info("Fail to connect mqtt server")
+                self.is_logging_to_mqtt = False
 
         return self
 
