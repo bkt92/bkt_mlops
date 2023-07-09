@@ -29,7 +29,7 @@ services:
   #    - '--memory-limit=1024'
 
   mqtt:
-    image: eclipse-mosquitto:2.0.25
+    image: eclipse-mosquitto:2.0.15
     restart: on-failure
     ports:
       - "1883:1883"
