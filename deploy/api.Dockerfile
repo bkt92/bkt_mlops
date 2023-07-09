@@ -1,8 +1,7 @@
 FROM python:3.11.1-slim
 
 RUN apt-get update
-RUN apt-get install libgomp1
-RUN apt-get install mosquitto
+RUN apt-get install libgomp1 mosquitto apt-utils -y
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
