@@ -16,16 +16,14 @@ x2 = []
 def plot1():
     global x1
     if len(x1)>1:
-        #plt.rcParams['figure.figsize'] = 6,4
         fig = px.histogram(x1, title="api runtime")
         return fig
     else:
         return None
-    
+
 def plot2():
     global x2
     if len(x2)>1:
-        #plt.rcParams['figure.figsize'] = 6,4
         fig = px.histogram(x2, title="api runtime")
         return fig
     else:
@@ -62,7 +60,7 @@ def on_message2(client, userdata, msg):
     q2.put(orjson.loads(msg.payload))
 
 with gr.Blocks(title="Model Dashboard") as dashboard:
-    gr.Markdown("Welcome to the Dashboard for Mlops")
+    gr.Markdown("## Welcome to the Dashboard for Mlops")
     with gr.Tab(label="Request Performance"):
         with gr.Row():
             gr.Markdown("Performance Monitor for Prob1")
@@ -93,11 +91,11 @@ if __name__=="__main__":
     client1 = mqtt.Client()
     client1.on_connect = on_connect1
     client1.on_message = on_message1
-    client1.connect(AppConfig.MQTT_ENDPOINT, AppConfig.MQTT_PORT, 60)
+    client1.connect(AppConfig.MQTT_ENDPOINT, int(AppConfig.MQTT_PORT), 60)
     client1.loop_start()
     client2 = mqtt.Client()
     client2.on_connect = on_connect2
     client2.on_message = on_message2
-    client2.connect(AppConfig.MQTT_ENDPOINT, AppConfig.MQTT_PORT, 60)
+    client2.connect(AppConfig.MQTT_ENDPOINT, int(AppConfig.MQTT_PORT), 60)
     client2.loop_start()
-    dashboard.queue().launch()
+    dashboard.queue().launch(server_name="0.0.0.0")
