@@ -7,7 +7,7 @@ from utils import AppPath
 from contextlib import asynccontextmanager
 
 class Data(BaseModel):
-    id: str
+    id: str | None | int | float
     rows: list
     columns: list
 

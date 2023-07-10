@@ -95,7 +95,7 @@ def read_logs():
     sys.stdout.flush()
     with open("output.log", "r") as f:
         return f.read()
-    
+   
 with gr.Blocks(title="Model Dashboard") as dashboard:
     gr.Markdown("## Welcome to the Dashboard for Mlops")
     with gr.Tab(label="Request Performance"):
@@ -126,7 +126,7 @@ with gr.Blocks(title="Model Dashboard") as dashboard:
                                 value="prob-1", label="Problem", interactive=True)
                 train_op = gr.CheckboxGroup(["Log to mlflow", "With addition data", "Change parameters"], label="Options")
                 params = gr.Textbox(label="Model parameters", visible=False)
-                data_file = gr.File(label="Add data to training set", visible= False)
+                data_file = gr.File(label="Add data to training set", visible= False, interactive=True)
                 
                 def slect_ops(train_op):
                     ret = {}
@@ -166,15 +166,28 @@ with gr.Blocks(title="Model Dashboard") as dashboard:
                     else:
                         return gr.update(visible=False)                 
                 custom_dbhost.select(fn=slect_ops_load, inputs=custom_dbhost, outputs=host)               
-                btn1 = gr.Button(value="Load Request To File")
+                btn1 = gr.Button(value="Save Request To File")
                 statusload = gr.Textbox(label="status", interactive=False, visible=True)
                 btn1.click(save_request_data, inputs=[model, clear_db, custom_dbhost, host], outputs=[statusload], show_progress=True)
             with gr.Column():
                 logs = gr.Textbox(label="Log")
                 dashboard.load(read_logs, None, logs, every=1)
 
-    with gr.Tab(label="Model Drift"):
-        gr.Markdown("Drift Report")
+    with gr.Tab(label="Data Drift"):
+        gr.Markdown("## Drift Report")
+        with gr.Row():
+            select_model = gr.Dropdown(choices=list_models, \
+                                value=list_models[0], label="Model", interactive=True)
+            select_request_file = gr.Dropdown(label="File")
+        with gr.Row():
+            dbtn1 = gr.Button(value="Load Request Data")
+            dbtn2 = gr.Button(value="Identify Drifted Data")
+        with gr.Row():
+            select_batch = gr.Dropdown(label="Batch")
+            select_report = gr.Dropdown(label="Type Of Report")
+        with gr.Row():
+            dbtn3 = gr.Button(value="Generate Report")
+            report_file = gr.File(label="Download Report", visible= True, interactive=False)
 
 if __name__=="__main__":
     client1 = mqtt.Client()

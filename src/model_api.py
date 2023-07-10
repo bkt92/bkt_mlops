@@ -13,7 +13,7 @@ from utils import AppPath
 #    columns: list
 
 class Data(BaseModel):
-    id: str
+    id: str | None | int | float
     rows: list
     columns: list
 
