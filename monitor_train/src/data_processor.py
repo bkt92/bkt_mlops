@@ -1,8 +1,14 @@
 import pickle
 import pandas as pd
 from problem_config import ProblemConfig
+import pandas as pd
+import redis
+import pickle
+from utils import AppConfig, AppPath
+import datetime
+import yaml
 
-class RawDataProcessor:
+class DataProcessor:
     @staticmethod
     def build_category_features(data, categorical_cols=None):
         if categorical_cols is None:
@@ -40,4 +46,30 @@ class RawDataProcessor:
     @staticmethod
     def load_category_index(prob_config: ProblemConfig):
         with open(prob_config.category_index_path, "rb") as f:
+            return pickle.load(f)
+    
+    @staticmethod
+    def load_and_save_data_redis(model_config, host = AppConfig.REDIS_ENDPOINT, clear_db=True):
+        model_config_path = (AppPath.MODEL_CONFIG_DIR / model_config).as_posix()
+        with open(model_config_path, "r") as f:
+            config = yaml.safe_load(f)
+        rc = redis.Redis(host=host, db=config["fet_db"], port=6379,  socket_keepalive=True)
+        captured_x = {}
+        print(f'Load request from {host}, db: {config["fet_db"]}')
+        for key in rc.keys():
+            captured_data = pickle.loads(rc.get(key))
+            captured_x[key] = captured_data
+            current_dt = datetime.datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+            file_name = f'{host}_prob{config["fet_db"]}_{current_dt}.pkl'
+        with open(AppPath.REQUEST_DATA_DIR / file_name , 'wb') as f:
+            pickle.dump(captured_x, f)
+        if clear_db:
+            rc.flushdb()
+            print("Cache is cleared")
+        return file_name
+
+    @staticmethod
+    def load_saved_request(request_file):
+        request_file_path = AppPath.REQUEST_DATA_DIR / request_file
+        with open(request_file_path, "rb") as f:
             return pickle.load(f)

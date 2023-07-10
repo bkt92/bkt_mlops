@@ -47,12 +47,12 @@ async def root():
     return {"message": "Welcome to bkt api for mlops competition!"}
 
 @post("/phase-2/prob-1/predict")
-async def predict(data: Data, request: Request):
+async def predict(data: Data):
     response = await predictor[1].predict_proba(data)
     return response
 
 @post("/phase-2/prob-2/predict")
-async def predict(data: Data, request: Request):
+async def predict(data: Data):
     response = await predictor[2].predict(data)
     return response
 
