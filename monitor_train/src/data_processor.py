@@ -59,8 +59,8 @@ class DataProcessor:
         for key in rc.keys():
             captured_data = pickle.loads(rc.get(key))
             captured_x[key] = captured_data
-            current_dt = datetime.datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
-            file_name = f'{host}_prob{config["fet_db"]}_{current_dt}.pkl'
+        current_dt = datetime.datetime.now().strftime("%d_%m_%Y__%H_%M_%S")
+        file_name = f'{host}_prob{config["fet_db"]}_{current_dt}.pkl'
         with open(AppPath.REQUEST_DATA_DIR / file_name , 'wb') as f:
             pickle.dump(captured_x, f)
         if clear_db:

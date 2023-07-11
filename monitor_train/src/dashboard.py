@@ -5,7 +5,7 @@ from queue import Queue
 import orjson
 from utils import AppPath, AppConfig
 from data_processor import DataProcessor
-#from drift_report import generate_drift_report
+from drift_report import generate_drift_report, detect_drift_keys
 import sys
 import glob
 import os
