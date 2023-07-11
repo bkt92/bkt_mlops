@@ -68,7 +68,12 @@ def save_request_data(model_config, clear_db, custom_dbhost, host):
         file = DataProcessor.load_and_save_data_redis(model_config, host=host, clear_db=clear_db)
     else:
         file = DataProcessor.load_and_save_data_redis(model_config, clear_db=clear_db)
+    file_path = AppPath.REQUEST_DATA_DIR / file
+    #return f"Successful load and save {model_config} to file {file}", gr.update(value=file_path, visible=True)
     return f"Successful load and save {model_config} to file {file}"
+
+def load_req_file():
+    return glob.glob(str(AppPath.REQUEST_DATA_DIR / '*.pkl'))
 
 def train_model(phase, prob, ops, params):
     return f"{phase}, {prob}, {ops}, {params}"
@@ -168,10 +173,12 @@ with gr.Blocks(title="Model Dashboard") as dashboard:
                 custom_dbhost.select(fn=slect_ops_load, inputs=custom_dbhost, outputs=host)               
                 btn1 = gr.Button(value="Save Request To File")
                 statusload = gr.Textbox(label="status", interactive=False, visible=True)
-                btn1.click(save_request_data, inputs=[model, clear_db, custom_dbhost, host], outputs=[statusload], show_progress=True)
+                request_out = gr.File(value=load_req_file, label="Download Request Data", interactive=False, every=2)
             with gr.Column():
                 logs = gr.Textbox(label="Log")
                 dashboard.load(read_logs, None, logs, every=1)
+            btn1.click(save_request_data, inputs=[model, clear_db, custom_dbhost, host], \
+                       outputs=statusload, show_progress=True)
 
     with gr.Tab(label="Data Drift"):
         gr.Markdown("## Drift Report")

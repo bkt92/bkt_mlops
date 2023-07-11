@@ -5,14 +5,15 @@ from pathlib import Path
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 class AppPath:
-    ROOT_DIR = Path(".").absolute().parents[0]
+    #ROOT_DIR = Path(".").absolute().parents[0]
+    ROOT_DIR = Path(".")
     DATA_DIR = ROOT_DIR / "data"
-    REQUEST_DATA_DIR = ROOT_DIR / "monitor_train"/ "data"
+    REQUEST_DATA_DIR = ROOT_DIR / "data" / "captured"
     CONFIG_DIR = ROOT_DIR / "config"
     # store configs for deployments
-    MODEL_CONFIG_DIR = CONFIG_DIR / "model_config"
+    MODEL_CONFIG_DIR = CONFIG_DIR
     # store problem config 
-    PROB_CONFIG_DIR = CONFIG_DIR / "problem_config"
+    PROB_CONFIG_DIR = CONFIG_DIR
 
 AppPath.MODEL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 AppPath.PROB_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
