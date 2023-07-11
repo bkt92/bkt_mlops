@@ -5,6 +5,7 @@ from queue import Queue
 import orjson
 from utils import AppPath, AppConfig
 from data_processor import DataProcessor
+#from drift_report import generate_drift_report
 import sys
 import glob
 import os
@@ -185,9 +186,13 @@ with gr.Blocks(title="Model Dashboard") as dashboard:
         with gr.Row():
             select_model = gr.Dropdown(choices=list_models, \
                                 value=list_models[0], label="Model", interactive=True)
-            select_request_file = gr.Dropdown(label="File")
+            select_request_file = gr.Dropdown(label="Request File", interactive=True)
         with gr.Row():
+            def load_req_file_name():
+                file_name = [os.path.basename(x) for x in glob.glob(str(AppPath.REQUEST_DATA_DIR / '*.pkl'))]
+                return gr.update(choices=file_name)
             dbtn1 = gr.Button(value="Load Request Data")
+            dbtn1.click(fn=load_req_file_name, inputs=None, outputs=select_request_file)
             dbtn2 = gr.Button(value="Identify Drifted Data")
         with gr.Row():
             select_batch = gr.Dropdown(label="Batch")

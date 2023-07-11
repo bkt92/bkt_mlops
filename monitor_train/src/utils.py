@@ -14,6 +14,8 @@ class AppPath:
     MODEL_CONFIG_DIR = CONFIG_DIR
     # store problem config 
     PROB_CONFIG_DIR = CONFIG_DIR
+    # store drifts reports
+    REPORTS_DIR = ROOT_DIR / "reports"
 
 AppPath.MODEL_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 AppPath.PROB_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
