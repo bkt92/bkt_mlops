@@ -1,0 +1,23 @@
+{
+    "listeners": {
+        "*:8000": {
+            "pass": "applications/python"
+        }
+    },
+
+    "applications": {
+        "python": {
+            "type": "python 3.11",
+            "processes": 8,
+            "protocol": "asgi",
+            "working_directory": "/model_predictor/",
+            "path": "/model_predictor/",
+            "home": "/model_predictor/",
+            "prefix": "/model_predictor",
+            "user": "root",
+            "group": "root",
+            "module": "src.model_api",
+            "callable": "app"
+        }
+    }
+}

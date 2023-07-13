@@ -28,6 +28,7 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     prob_config.prob_id = prob_id
     prob_config.phase_id = phase_id
     prob_config.random_state = 123
+    prob_config.test_size = 0.1
 
     # construct data paths for original data
     prob_config.feature_config_path = (
@@ -41,6 +42,7 @@ def create_prob_config(phase_id: str, prob_id: str) -> ProblemConfig:
     )
     prob_config.driff_ref_path = prob_config.data_path / "x_ref.parquet"
     prob_config.raw_data_path = prob_config.data_path / "raw_train.parquet"
+    prob_config.kmeans_path = prob_config.data_path / "kmeans_path.cpk"
 
     # get properties of ml-problem
     feature_configs = load_feature_configs_dict(prob_config.feature_config_path)

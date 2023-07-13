@@ -1,10 +1,10 @@
 import sys
 sys.path.append('./src')
-from data_processor import RawDataProcessor
+from data_processor import DataProcessor
+from sklearn.model_selection import train_test_split
 from problem_config import create_prob_config
-from utils import AppPath, AppConfig
-from sklearn.metrics import roc_auc_score
-import datetime
+from utils import AppConfig
+from sklearn.metrics import roc_auc_score, accuracy_score
 import pandas as pd
 import numpy as np
 import pickle
@@ -16,14 +16,12 @@ from lightgbm import LGBMClassifier
 
 class ModelTrainer:
     @staticmethod
-    def log_model_to_tracker(model, test_x, metrics, desc, experiment_id="phase-2_prob-1_lgbm"):
+    def log_model_to_tracker(model, signature, metrics, desc, experiment_id="phase-2_prob-1_lgbm"):
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
         mlflow.set_experiment(experiment_id)
         mlflow.start_run(description=desc)
         mlflow.log_metrics(metrics)
         mlflow.log_params(model.get_params())
-        predictions = model.predict(test_x)
-        signature = infer_signature(test_x.astype(np.float64), predictions)
         mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path=AppConfig.MLFLOW_MODEL_PREFIX,
@@ -36,37 +34,35 @@ class ModelTrainer:
         return experimentid
 
     @staticmethod
-    def train(train_x, train_y, test_x, test_y, **args):
-        model = LGBMClassifier(objective="binary", random_state=123)
-        model.fit(train_x, train_y, verbose=False)
-        predictions = model.predict_proba(test_x.astype(np.float64))[:,1]
-        metrics = {"test_auc": roc_auc_score(test_y, predictions)}
-        return model, metrics
-
-    @staticmethod
-    def process_data(prob_config):
+    def train_lgb(phase_id, prob_id, split=False, newdata=None, **args):
+        prob_config = create_prob_config(phase_id, prob_id)
         training_data = pd.read_parquet(prob_config.raw_data_path)
-        training_data, category_index = RawDataProcessor.build_category_features(
+        training_data, category_index = DataProcessor.build_category_features(
                     training_data, prob_config.categorical_cols
                 )
         target_col = prob_config.target_col
-        train_x = training_data.drop([target_col], axis=1)
-        train_y = training_data[[target_col]]
+        train, dev = train_test_split(training_data, test_size=prob_config.test_size, random_state=prob_config.random_state)
         # Store the category_index
         with open(prob_config.category_index_path, "wb") as f:
             pickle.dump(category_index, f)
-        sample = training_data.sample(1000)
-        test_x = sample.drop([target_col], axis=1)
-        test_y = sample[[target_col]]
-        return train_x, train_y, test_x, test_y
-
-if __name__=="__main__":
-
-    prob_config = create_prob_config("phase-2", "prob-1")
-    current_dt = datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
-    run_description = f"""
-    ### Header {current_dt}
-    LGBM model, Model for PROB1
-    Model: LGBM
-        """
-    #log_model_to_tracker(model, metrics, run_description)
+        if split:
+            train_x = train.drop([target_col], axis=1)
+            train_y = train[[target_col]]
+        else:
+            train_x = training_data.drop([target_col], axis=1)
+            train_y = training_data[[target_col]]
+        test_x = dev.drop(["label"], axis=1)
+        test_y = dev[[target_col]]
+        if (newdata is not None):
+            train_x = pd.DataFrame(np.concatenate((train_x, newdata.drop([target_col], axis=1))), columns=train_x.columns)
+            train_y = pd.DataFrame(np.concatenate((train_y, newdata[[target_col]])), columns=train_y.columns)
+        model = LGBMClassifier(objective="binary", random_state=prob_config.random_state, **args)
+        model.fit(train_x, train_y, verbose=False)
+        if len(np.unique(train_y)) == 2:
+            predictions = model.predict_proba(test_x.astype(np.float64))[:,1]
+            metrics = {"test_auc": roc_auc_score(test_y, predictions)}
+        else:
+            predictions = model.predict(test_x)
+            metrics = {"test_auc": accuracy_score(test_y, predictions)}
+        signature = infer_signature(test_x.astype(np.float64), predictions)
+        return model, metrics, signature
