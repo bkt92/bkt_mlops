@@ -19,3 +19,4 @@ COPY ./deploy/mosquitto.sh .
 RUN chmod +x mosquitto.sh
 COPY ./deploy/config.json /docker-entrypoint.d/config.json
 COPY ./deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
