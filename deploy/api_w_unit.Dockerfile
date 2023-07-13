@@ -17,6 +17,5 @@ COPY ./data ./data
 COPY ./config ./config
 COPY ./deploy/mosquitto.sh .
 RUN chmod +x mosquitto.sh
-COPY ./deploy/unit_init.sh /docker-entrypoint.d/unit_init.sh
-RUN chmod +x /docker-entrypoint.d/unit_init.sh
 COPY ./deploy/config.json /docker-entrypoint.d/config.json
+COPY ./deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
