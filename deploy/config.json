@@ -12,7 +12,7 @@
             "protocol": "asgi",
             "working_directory": "/model_predictor/",
             "path": "/model_predictor/",
-            "home": "/model_predictor/",
+            "home": "/opt/venv/",
             "prefix": "/model_predictor",
             "user": "root",
             "group": "root",
