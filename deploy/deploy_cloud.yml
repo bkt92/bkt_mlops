@@ -5,7 +5,7 @@
 #    MODEL_CONFIG_PATH: /home/ec2-user/model_config/all_model.yaml
 #    user_home: /home/ubuntu
 #    server_home: /home/ubuntu
-     server_home: /root
+     server_home: /home/ubuntu
   tasks:
     - name: Install aptitude
       apt:
@@ -65,10 +65,10 @@
     #    src:  "/home/bkt92/MlOps/mlopsmlflow/data/train_data"
     #    dest: "{{ server_home }}/data"
 
-    - name: Copy docker-compose.yaml to server
-      copy:
-        src:  "{{ playbook_dir }}/docker-compose.yml"
-        dest: "{{ server_home }}"
+   # - name: Copy docker-compose.yaml to server
+   #   copy:
+   #     src:  "{{ playbook_dir }}/docker-compose.yml"
+   #     dest: "{{ server_home }}"
 
-    - name: Run the server
-      command: docker-compose up -d
+   # - name: Run the server
+   #   command: docker-compose up -d
