@@ -35,7 +35,7 @@ services:
   #    - "1883:1883"
 
   model_predictor:
-    image: bkt92/model_predictor:unit
+    image: bkt92/model_predictor_unit:latest
     restart: on-failure
     depends_on:
       - mlflow
