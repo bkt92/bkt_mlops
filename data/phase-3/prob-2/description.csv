@@ -1,0 +1,7 @@
+Key,Value
+Source,MLOps
+Label,Attack Category
+Train size,92762
+Test size,61842
+Description,"The machine learning problem aims to detect anomaly network connection categories.
+    Total train dataset with 92762 records and the test dataset with 61842 records."
