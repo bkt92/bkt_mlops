@@ -1,5 +1,6 @@
 build_api:
 	docker build -t  bkt92/model_predictor:latest -f deploy/api.Dockerfile .
+        docker build -t  bkt92/model_predictor:unit -f deploy/api_w_unit.Dockerfile .
 
 push_docker:
 	docker push bkt92/model_predictor:latest
