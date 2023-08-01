@@ -56,3 +56,4 @@ services:
       - "-s hypercorn"
       - "-w 4"
       - "-k uvloop"
+      - "-f falcon"
