@@ -7,8 +7,8 @@ from utils import AppPath
 
 config_path = {}
 
-config_path[1] = (AppPath.MODEL_CONFIG_DIR / "phase-2_prob-1.yaml").as_posix()
-config_path[2] = (AppPath.MODEL_CONFIG_DIR / "phase-2_prob-2.yaml").as_posix()
+config_path[1] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-1.yaml").as_posix()
+config_path[2] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-2.yaml").as_posix()
 
 class Data(BaseModel):
     id: str | None | int | float
@@ -46,6 +46,6 @@ class Predictor2:
 #        resp.status = falcon.HTTP_200
 
 app = falcon.asgi.App(middleware=[init_predictor()])
-app.add_route('/phase-2/prob-1/predict', Predictor1())
-app.add_route('/phase-2/prob-2/predict', Predictor2())
+app.add_route('/phase-3/prob-1/predict', Predictor1())
+app.add_route('/phase-3/prob-2/predict', Predictor2())
 #app.add_route('/clearcache', Clearcache())
