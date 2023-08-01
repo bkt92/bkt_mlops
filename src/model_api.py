@@ -19,8 +19,8 @@ class Data(BaseModel):
 
 config_path = {}
 
-config_path[1] = (AppPath.MODEL_CONFIG_DIR / "phase-2_prob-1.yaml").as_posix()
-config_path[2] = (AppPath.MODEL_CONFIG_DIR / "phase-2_prob-2.yaml").as_posix()
+config_path[1] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-1.yaml").as_posix()
+config_path[2] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-2.yaml").as_posix()
 
 predictor = {}
 
@@ -46,12 +46,12 @@ async def lifespan():
 async def root():
     return {"message": "Welcome to bkt api for mlops competition!"}
 
-@post("/phase-2/prob-1/predict")
+@post("/phase-3/prob-1/predict")
 async def predict(data: Data):
     response = await predictor[1].predict_proba(data)
     return response
 
-@post("/phase-2/prob-2/predict")
+@post("/phase-3/prob-2/predict")
 async def predict(data: Data):
     response = await predictor[2].predict(data)
     return response
