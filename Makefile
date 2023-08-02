@@ -1,6 +1,6 @@
 build_api:
 	docker build -t  bkt92/model_predictor:latest -f deploy/api.Dockerfile .
-        docker build -t  bkt92/model_predictor:unit -f deploy/api_w_unit.Dockerfile .
+	docker build -t  bkt92/model_predictor:unit -f deploy/api_w_unit.Dockerfile .
 
 push_docker:
 	docker push bkt92/model_predictor:latest
@@ -19,8 +19,14 @@ init_api:
 start_docker_api:
 	docker-compose -f deploy/docker-compose.yml up -d
 
+start_docker_api_unit:
+	docker-compose -f deploy/docker-compose-unit.yml up -d
+
 stop_docker_api:
 	docker-compose -f deploy/docker-compose.yml down
+
+start_docker_api_unit:
+	docker-compose -f deploy/docker-compose-unit.yml down
 
 api_hyper_fal:
 	hypercorn -b 0.0.0.0:8000 -w 4 src.model_falcon:app
