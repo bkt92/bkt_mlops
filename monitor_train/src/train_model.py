@@ -16,7 +16,7 @@ from lightgbm import LGBMClassifier
 
 class ModelTrainer:
     @staticmethod
-    def log_model_to_tracker(model, signature, metrics, desc, experiment_id="phase-2_prob-1_lgbm"):
+    def log_model_to_tracker(model, signature, metrics, desc, experiment_id):
         mlflow.set_tracking_uri(AppConfig.MLFLOW_TRACKING_URI)
         mlflow.set_experiment(experiment_id)
         mlflow.start_run(description=desc)

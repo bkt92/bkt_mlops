@@ -1,5 +1,6 @@
 import sys
 import os
+#import glob
 import logging
 sys.path.append('./src')
 import pathlib
@@ -14,10 +15,11 @@ import numpy as np
 from drift_detector import ks_drift_detect_async
 
 config_path = {}
+#config_path = glob.glob(str(AppPath.MODEL_CONFIG_DIR / '*.yaml')) # For auto load the config files
 config_path[1] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-1.yaml").as_posix()
 config_path[2] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-2.yaml").as_posix()
 
-def init_startup(config_file_path):
+def init_startup(config_file_path, compile_model=True):
 
     with open(config_file_path, "r") as f:
         config = yaml.safe_load(f)
@@ -29,34 +31,50 @@ def init_startup(config_file_path):
         config["phase_id"], config["prob_id"]
     )
 
-    # Compile model to llvm for faster speed and save to disk
-    model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_lgbm.txt'
-    model_classes_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_classes.npy'
-    llvm_model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_llvm_compiled.model'
-
-    logging.info("Delete old files")
-    # Delete old models
-    if os.path.exists(model_path):
-        os.remove(model_path)
-    if os.path.exists(model_classes_path):
-        os.remove(model_classes_path)
-    if os.path.exists(llvm_model_path):
-        os.remove(llvm_model_path)
-
     # load model from mlflow tracker
-    logging.info("Loading and compiling models")
+    logging.info("Loading models")
     model_uri = str(pathlib.Path(
         "models:/", config["model_name"], str(config["model_version"])
     ).as_posix())
     model = mlflow.pyfunc.load_model(model_uri)
-    model._model_impl.booster_.save_model(filename=model_path)
-    np.save(model_classes_path, model._model_impl.classes_)
-    llvm_model = lleaves.Model(model_file=model_path)
-    llvm_model.compile(cache=llvm_model_path)
+
+    # Init model paths
+    if config["model_type"]=='lgbm':
+        model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_lgbm.txt'
+        #model_classes_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_classes.npy'
+        compiled_model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_llvm_compiled.model'
+    if config["model_type"]=='xgb':
+        model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_xgb.model'
+        #model_classes_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_classes.npy'
+        compiled_model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_xgb_compiled.model'
+
+    logging.info("Delete old files")
+    # Delete old files
+    if os.path.exists(model_path):
+        os.remove(model_path)
+    #if os.path.exists(model_classes_path):
+    #    os.remove(model_classes_path)
+    if os.path.exists(compiled_model_path):
+        os.remove(compiled_model_path)
+
+    if config["model_type"]=='lgbm':
+        model._model_impl.booster_.save_model(filename=model_path)
+        #np.save(model_classes_path, model._model_impl.classes_)
+        if compile_model:
+            logging.info("Compiling models")
+            llvm_model = lleaves.Model(model_file=model_path)
+            llvm_model.compile(cache=compiled_model_path)
+    
+    if config["model_type"]=='xgb':
+        model._model_impl.save_model(model_path)
+        if compile_model:
+            logging.info("Compiling models")
+            pass
+
     logging.info("Sucess Loading and Compiling Models")
 
     return True
 
 if __name__ == "__main__":
-    init_startup(config_path[1])
-    init_startup(config_path[2])
+    init_startup(config_path[1], compile_model=AppConfig.COMPILE_MODEL)
+    init_startup(config_path[2], compile_model=AppConfig.COMPILE_MODEL)

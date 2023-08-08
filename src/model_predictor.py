@@ -5,6 +5,8 @@ import datetime
 
 #import mlflow
 import lleaves
+from xgboost import XGBClassifier
+from lightgbm import Booster
 import pandas as pd
 import yaml
 from pandas.util import hash_pandas_object
@@ -75,16 +77,27 @@ class ModelPredictor(object):
             self.is_caching_request = True                         
         
         # Load compiled model for faster speed (run init_startup.py first)
-        try:
+        if self.config["model_type"] == 'lgbm':
+            self.model_type = 'lgbm'
             model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_lgbm.txt'
             llvm_model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_llvm_compiled.model'
-            model_classes_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_classes.npy'
-            #self.model._model_impl.booster_.save_model(filename=model_path)
-            self.llvm_model = lleaves.Model(model_file=model_path)
-            self.llvm_model.compile(cache=llvm_model_path)
+            model_classes_path = self.prob_config.data_path / 'classes.npy'
+                #self.model._model_impl.booster_.save_model(filename=model_path)
+            if AppConfig.COMPILE_MODEL:
+                self.model = lleaves.Model(model_file=model_path)
+                self.model.compile(cache=llvm_model_path)
+                self.model_classes = np.load(model_classes_path, allow_pickle=True)
+            else:
+                self.model = Booster(model_file=model_path)
+            #except:
+            #    raise Exception("Sorry, model is not compiled load default model")
+        if self.config["model_type"] == 'xgb':
+            self.model_type = 'xgb'
+            model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_xgb.model'
+            model_classes_path = self.prob_config.data_path / 'classes.npy'
+            self.model = XGBClassifier()
+            self.model.load_model(model_path)
             self.model_classes = np.load(model_classes_path, allow_pickle=True)
-        except:
-            raise Exception("Sorry, model is not saved, run the init_startup.py script first")
         # Logging to mqtt
         if AppConfig.REMOTE_LOGGING == 'False' or AppConfig.REMOTE_LOGGING == '0':
             self.is_logging_to_mqtt = False
@@ -144,9 +157,13 @@ class ModelPredictor(object):
         ).astype(np.float64)
         # Run prediction if no cache stored.
         #prediction = self.model._model_impl.predict(feature_df[self.feature_cols])
-        prediction_prob = self.llvm_model.predict(feature_df[self.feature_cols])
-        labels = np.argmax(prediction_prob, axis=1)
-        prediction = [self.model_classes[i] for i in labels]
+        if self.model_type == 'lgbm':
+            prediction_prob = self.model.predict(feature_df[self.feature_cols])
+            labels = np.argmax(prediction_prob, axis=1)
+            prediction = [self.model_classes[i] for i in labels]
+        elif self.model_type == 'xgb':
+            labels = self.model.predict(feature_df[self.feature_cols])
+            prediction = [self.model_classes[i] for i in labels]
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True))
         result = {
             "id": data.id,
@@ -178,7 +195,10 @@ class ModelPredictor(object):
         ).astype(np.float64)
         # Run prediction if no cache stored.
         #prediction = self.model._model_impl.predict_proba(feature_df[self.feature_cols])[:,1]
-        prediction = self.llvm_model.predict(feature_df[self.feature_cols])
+        if self.model_type == 'lgbm':
+            prediction = self.model.predict(feature_df[self.feature_cols])
+        elif self.model_type == 'xgb':
+            prediction = self.model.predict_proba(feature_df[self.feature_cols])[:,1]
         is_drifted = await self.detect_drift(feature_df.dropna()) #.sample(100, replace=True)
         result = {
             "id": data.id,

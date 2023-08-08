@@ -12,6 +12,7 @@ pydantic==2.0.2
 uvicorn==0.22.0
 hypercorn
 lightgbm==3.3.5
+xgboost==1.7.6
 lleaves
 falcon==3.1.1
 uvloop
