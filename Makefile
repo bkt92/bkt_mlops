@@ -25,7 +25,7 @@ start_docker_api_unit:
 stop_docker_api:
 	docker-compose -f deploy/docker-compose.yml down
 
-start_docker_api_unit:
+stop_docker_api_unit:
 	docker-compose -f deploy/docker-compose-unit.yml down
 
 api_hyper_fal:
