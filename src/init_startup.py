@@ -13,6 +13,7 @@ from problem_config import create_prob_config
 import numpy as np
 # Preload numba function and cached
 from drift_detector import ks_drift_detect_async
+import daal4py as d4p
 
 config_path = {}
 #config_path = glob.glob(str(AppPath.MODEL_CONFIG_DIR / '*.yaml')) # For auto load the config files
@@ -67,9 +68,6 @@ def init_startup(config_file_path, compile_model=True):
     
     if config["model_type"]=='xgb':
         model._model_impl.save_model(model_path)
-        if compile_model:
-            logging.info("Compiling models")
-            pass
 
     logging.info("Sucess Loading and Compiling Models")
 
