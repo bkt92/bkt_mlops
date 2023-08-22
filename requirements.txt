@@ -13,8 +13,9 @@ uvicorn==0.22.0
 hypercorn
 lightgbm==3.3.5
 xgboost==1.7.6
-daal4py
 lleaves
+treelite
+tl2cgen
 falcon==3.1.1
 uvloop
 paho-mqtt==1.6.1

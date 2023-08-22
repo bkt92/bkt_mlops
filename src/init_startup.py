@@ -10,10 +10,12 @@ import lleaves
 from utils import AppPath
 from utils import AppConfig
 from problem_config import create_prob_config
-import numpy as np
+#import numpy as np
 # Preload numba function and cached
 from drift_detector import ks_drift_detect_async
-import daal4py as d4p
+#import daal4py as d4p
+import treelite
+import tl2cgen
 
 config_path = {}
 #config_path = glob.glob(str(AppPath.MODEL_CONFIG_DIR / '*.yaml')) # For auto load the config files
@@ -47,7 +49,7 @@ def init_startup(config_file_path, compile_model=True):
     if config["model_type"]=='xgb':
         model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_xgb.model'
         #model_classes_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_classes.npy'
-        compiled_model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_xgb_compiled.model'
+        compiled_model_path = prob_config.data_path / f'{config["phase_id"]}_{config["prob_id"]}_xgb_compiled.so'
 
     logging.info("Delete old files")
     # Delete old files
@@ -68,6 +70,9 @@ def init_startup(config_file_path, compile_model=True):
     
     if config["model_type"]=='xgb':
         model._model_impl.save_model(model_path)
+        if compile_model:
+            treelite_model = treelite.Model.from_xgboost(model._model_impl._Booster)
+            tl2cgen.export_lib(treelite_model, toolchain="gcc", libpath=compiled_model_path, params={})
 
     logging.info("Sucess Loading and Compiling Models")
 

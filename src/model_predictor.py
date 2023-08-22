@@ -7,7 +7,8 @@ import datetime
 import lleaves
 from xgboost import XGBClassifier
 from lightgbm import Booster
-import daal4py as d4p
+#import daal4py as d4p
+import tl2cgen
 import pandas as pd
 import yaml
 from pandas.util import hash_pandas_object
@@ -95,17 +96,19 @@ class ModelPredictor(object):
         if self.config["model_type"] == 'xgb':
             self.model_type = 'xgb'
             model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_xgb.model'
+            compiled_model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_xgb_compiled.so'
             model_classes_path = self.prob_config.data_path / 'classes.npy'
             self.model_classes = np.load(model_classes_path, allow_pickle=True)
             if AppConfig.COMPILE_MODEL:
-                model = XGBClassifier()
-                model.load_model(model_path)
-                self.daal_model = d4p.get_gbt_model_from_xgboost(model._Booster)
-                self.d4p_cls_algo = d4p.gbt_classification_prediction(
-                        nClasses=len(self.model_classes),
-                        resultsToEvaluate="computeClassLabels",
-                        fptype='float'
-                    )
+                #model = XGBClassifier()
+                #model.load_model(model_path)
+                #self.daal_model = d4p.get_gbt_model_from_xgboost(model._Booster)
+                #self.d4p_cls_algo = d4p.gbt_classification_prediction(
+                #        nClasses=len(self.model_classes),
+                #        resultsToEvaluate="computeClassLabels",
+                #        fptype='float'
+                #    )
+                self.model = tl2cgen.Predictor(compiled_model_path, verbose=False)
             else:
                 self.model = XGBClassifier()
                 self.model.load_model(model_path)
@@ -174,8 +177,11 @@ class ModelPredictor(object):
             prediction = [self.model_classes[i] for i in labels]
         elif self.model_type == 'xgb':
             if AppConfig.COMPILE_MODEL:
-                labels = self.d4p_cls_algo.compute(feature_df[self.feature_cols], self.daal_model).prediction.T[0].astype(np.int64)
+                prediction_prob = self.model.predict(tl2cgen.DMatrix(feature_df[self.feature_cols]))
+                labels = np.argmax(prediction_prob, axis=1)
                 prediction = [self.model_classes[i] for i in labels]
+                #labels = self.d4p_cls_algo.compute(feature_df[self.feature_cols], self.daal_model).prediction.T[0].astype(np.int64)
+                #prediction = [self.model_classes[i] for i in labels]
             else:
                 labels = self.model.predict(feature_df[self.feature_cols])
                 prediction = [self.model_classes[i] for i in labels]
