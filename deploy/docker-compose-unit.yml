@@ -51,4 +51,4 @@ services:
       MQTT_ENDPOINT: localhost
       #MEMCACHED_ENDPOINT: memcached
       #CACHE_BACKEND: REDIS
-      #SET_CACHE_REQUEST: False
+      SET_CACHE_REQUEST: False
