@@ -84,12 +84,12 @@ class ModelPredictor(object):
             model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_lgbm.txt'
             llvm_model_path = self.prob_config.data_path / f'{self.config["phase_id"]}_{self.config["prob_id"]}_llvm_compiled.model'
             model_classes_path = self.prob_config.data_path / 'classes.npy'
+            self.model_classes = np.load(model_classes_path, allow_pickle=True)
                 #self.model._model_impl.booster_.save_model(filename=model_path)
             if self.config["compile"] == 'true':
                 self.compile = True
                 self.model = lleaves.Model(model_file=model_path)
                 self.model.compile(cache=llvm_model_path)
-                self.model_classes = np.load(model_classes_path, allow_pickle=True)
             else:
                 self.compile = False
                 self.model = Booster(model_file=model_path)
