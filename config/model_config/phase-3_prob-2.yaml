@@ -3,4 +3,5 @@ prob_id: "prob-2"
 model_name: "phase-3_prob-2_model"
 model_version: "production"
 model_type: "lgbm"
+compile: "false"
 fet_db: 2

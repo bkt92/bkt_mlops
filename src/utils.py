@@ -25,4 +25,3 @@ class AppConfig:
     CACHE_REQUEST = os.environ.get("SET_CACHE_REQUEST")
     REMOTE_LOGGING = os.environ.get("REMOTE_LOGGING")
     MLFLOW_MODEL_PREFIX = "model"
-    COMPILE_MODEL = os.environ.get("COMPILE_MODEL", True)
