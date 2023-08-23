@@ -22,7 +22,7 @@ config_path = {}
 config_path[1] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-1.yaml").as_posix()
 config_path[2] = (AppPath.MODEL_CONFIG_DIR / "phase-3_prob-2.yaml").as_posix()
 
-def init_startup(config_file_path, compile_model=True):
+def init_startup(config_file_path):
 
     with open(config_file_path, "r") as f:
         config = yaml.safe_load(f)
@@ -63,14 +63,14 @@ def init_startup(config_file_path, compile_model=True):
     if config["model_type"]=='lgbm':
         model._model_impl.booster_.save_model(filename=model_path)
         #np.save(model_classes_path, model._model_impl.classes_)
-        if compile_model:
+        if config["compile"] == 'true':
             logging.info("Compiling models")
             llvm_model = lleaves.Model(model_file=model_path)
             llvm_model.compile(cache=compiled_model_path)
     
     if config["model_type"]=='xgb':
         model._model_impl.save_model(model_path)
-        if compile_model:
+        if config["compile"] == 'true':
             treelite_model = treelite.Model.from_xgboost(model._model_impl._Booster)
             tl2cgen.export_lib(treelite_model, toolchain="gcc", libpath=compiled_model_path, params={})
 
@@ -79,5 +79,5 @@ def init_startup(config_file_path, compile_model=True):
     return True
 
 if __name__ == "__main__":
-    init_startup(config_path[1], compile_model=AppConfig.COMPILE_MODEL)
-    init_startup(config_path[2], compile_model=AppConfig.COMPILE_MODEL)
+    init_startup(config_path[1])
+    init_startup(config_path[2])
