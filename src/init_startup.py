@@ -72,7 +72,7 @@ def init_startup(config_file_path):
         model._model_impl.save_model(model_path)
         if config["compile"] == 'true':
             treelite_model = treelite.Model.from_xgboost(model._model_impl._Booster)
-            tl2cgen.export_lib(treelite_model, toolchain="gcc", libpath=compiled_model_path, params={})
+            tl2cgen.export_lib(treelite_model, toolchain="gcc", libpath=compiled_model_path, params={"parallel_comp": 8})
 
     logging.info("Sucess Loading and Compiling Models")
 
