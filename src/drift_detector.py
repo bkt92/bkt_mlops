@@ -41,5 +41,6 @@ async def ks_drift_detect_async(x_ref: np.ndarray, x: np.ndarray, p_val: np.floa
     tasks = [ks_2samp_async(x_ref[:, i], x[:, i]) for i in range(n_features)]
     p_vals = np.array(await asyncio.gather(*tasks), dtype=np.float32)
     threshold = p_val / n_features
-    drift_pred = int((p_vals < threshold).any())
+    #drift_pred = int((p_vals < threshold).any())
+    drift_pred = int((p_vals < threshold).sum() > 10)
     return drift_pred
